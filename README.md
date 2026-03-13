@@ -52,6 +52,13 @@ The experiments in this project use public datasets:
 * CIFAR-10
 * CIFAR-100
 
+Please download the public datasets and place them in your local directory, e.g.: ``/path/to/dataset``.
+
+Then set the hyperparameter `--dir_data` accordingly:
+```
+--dir_data /path/to/dataset
+```
+
 Dataset preprocessing and loading scripts are implemented in the [data](/data) directory.
 
 ## Training SFedHIFI
