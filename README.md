@@ -2,7 +2,6 @@
 
 ![Python](https://img.shields.io/badge/python-3.9-blue)
 ![PyTorch](https://img.shields.io/badge/PyTorch-2.2-red)
-![License](https://img.shields.io/badge/license-MIT-green)
 
 Official PyTorch implementation of the AAAI 2026 paper:
 
