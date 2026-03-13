@@ -1,44 +1,92 @@
-## SFedHIFI: Fire Rate-Based Heterogeneous Information Fusion for Spiking Federated Learning (AAAI'2026)
+# SFedHIFI: Fire Rate-Based Heterogeneous Information Fusion for Spiking Federated Learning
 
-## Abstract
-Spiking Federated Learning (SFL) has been widely studied with the energy efficiency of Spiking Neural Networks (SNNs). However, existing SFL methods require model homogeneity and assume all clients have sufficient computational resources, resulting in the exclusion of some resource-constrained clients.  To address the prevalent system heterogeneity in real-world scenarios, enabling heterogeneous SFL systems that allow clients to adaptively deploy models of different scales based on their local resources is crucial. To this end, we introduce SFedHIFI, a novel **S**piking **Fed**erated Learning framework with Fire Rate-Based **H**eterogeneous **I**nformation **F**us**i**on. Specifically, we leverage channel pruning to deploy a series of SNN models with adjustable complexity on clients with varying computational resources. By channel-wise matrix decomposition and the proposed heterogeneous information fusion module, SFedHIFI enables cross-scale aggregation across client models of different widths, thereby facilitating the learning from more comprehensive local datasets. Extensive experiments on three public benchmarks demonstrate that SFedHIFI can effectively enable heterogeneous SFL, consistently outperforming all three baseline methods. Compared with ANN-based FL, it achieves significant energy savings with only a marginal trade-off in accuracy.
+![Python](https://img.shields.io/badge/python-3.9-blue)
+![PyTorch](https://img.shields.io/badge/PyTorch-2.2-red)
+![License](https://img.shields.io/badge/license-MIT-green)
+
+Official PyTorch implementation of the AAAI 2026 paper:
+
+**SFedHIFI: Fire Rate-Based Heterogeneous Information Fusion for Spiking Federated Learning**
+
+[Paper link (to be added)] 
 
 ## Overview
 
-- **SFedHIFI Framework**
+Spiking Federated Learning (SFL) has attracted increasing attention due to the energy efficiency of Spiking Neural Networks (SNNs). However, most existing SFL methods assume homogeneous models and sufficient computational resources across clients, which limits their applicability in real-world heterogeneous environments.
+
+To address this challenge, we propose SFedHIFI, a novel Spiking Federated Learning framework with Fire Rate-Based Heterogeneous Information Fusion. The framework enables heterogeneous clients to train SNNs with different model scales and supports cross-scale aggregation through channel-wise matrix decomposition and a heterogeneous information fusion module.
+
+Extensive experiments on multiple benchmarks demonstrate that SFedHIFI effectively supports heterogeneous SFL and consistently outperforms baseline methods while achieving significant energy savings compared with ANN-based federated learning.
+
+## Framework
+
+The overall framework of **SFedHIFI** is illustrated below.
 
 <img src="Pictures/overview_01.png" alt="overview_01" style="zoom:40%;" />
 
-## Getting Started
+SFedHIFI enables heterogeneous clients to collaboratively train spiking neural networks with different model scales through fire rate-based information fusion and cross-scale aggregation.
 
-### 1. Requirements
-
-Install the requirements using a `conda` environment:
+## Installation
+We recommend using **Python 3.9+** and **PyTorch 2.0+**.
+### Clone repository
+```bash
+git clone https://github.com/rtao499/SFedHIFI.git
+cd SFedHIFI
 ```
+
+### Conda Environment (Recommended)
+```bash
 conda env create -f environment.yml
+conda activate sfedhifi
 ```
-(Optional) We use [SwanLab](https://github.com/SwanHubX/SwanLab) to log experiment data. Please refer to the official documentation and configure the API
-``
-swanlab.login(api_key='')
-``
- in [main_FL.py](main_FL.py).
 
-### 2. Train SFedHIFI
+### Pip Installation
+Alternatively, install dependencies with pip:
+```bash
+pip install -r requirements.txt
+```
 
-The script can be found under [demo.sh](demo.sh), below is an example of SFedHIFI on CIFAR-10 dataset with IID set.
+## Dataset
+The experiments in this project use public datasets:
 
-```python
+* Fasion-Mnist
+* CIFAR-10
+* CIFAR-100
+
+Dataset preprocessing and loading scripts are implemented in the [data](/data) directory.
+
+## Training SFedHIFI
+
+The script can be found under [demo.sh](demo.sh), below is an example of SFedHIFI on CIFAR-10 dataset with IID setting.
+
+```bash
 CUDA_VISIBLE_DEVICES=0 python main_FL.py --n_agents 10 --dir_data /home/user/dataset --data_train cifar10 --data_test cifar10 --n_joined 5 --model_type snn --tucker --tucker_epochs 225 --split iid --T 10 --local_epochs 2 --batch_size 32 --epochs 500 --decay step-250-375 --lr 0.1 --fraction_list 0.25,0.5,0.75,1 --template ResNet18 --model spiking_resnet_flanc --basis_fraction 0.125 --n_basis 0.25
 ```
 
-### 3. Evaluation with baseline.
+## Baseline Methods
 
 The script can be found under [demo.sh](demo.sh), below is an example of FedAVG on CIFAR-10 dataset with IID set.
 
-```python
+```bash
 CUDA_VISIBLE_DEVICES=0 python main_FL.py --n_agents 10 --dir_data /home/user/Dataset --classic fedavg --data_train cifar10 --data_test cifar10 --n_joined 5 --model_type snn --split iid --T 10 --local_epochs 2 --batch_size 32 --epochs 500 --decay step-250-375 --lr 0.1 --fraction_list 0.25,0.5,0.75,1 --template ResNet18 --model spiking_resnet_flanc --basis_fraction 0.125 --n_basis 0.25
 ```
 
+## Logging (Optional)
+This project optionally supports experiment logging with [SwanLab](https://github.com/SwanHubX/SwanLab). 
+
+To enable logging, configure your API key in [main_FL.py](main_FL.py):
+```
+import swanlab
+swanlab.login(api_key="YOUR_API_KEY")
+```
 
 ## Acknowledgements
-This code is built on [Spikingjelly](https://github.com/fangwei123456/spikingjelly) and [FLANC](https://github.com/HarukiYqM/All-In-One-Neural-Composition). We thank the authors for sharing their codes.
+This project builds upon the following open-source projects:
+
+* [Spikingjelly](https://github.com/fangwei123456/spikingjelly)
+* [FLANC](https://github.com/HarukiYqM/All-In-One-Neural-Composition)
+
+We sincerely thank the authors for making their code publicly available.
+
+## Citation
+Coming Soon
