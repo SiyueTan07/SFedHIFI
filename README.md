@@ -101,7 +101,7 @@ For other communications related to this git, please contact [rantaostd@gmail.co
 If you find this repo useful, please consider citing:
 
 ``````
-@misc{tao2026sfedhifiratebasedheterogeneousinformation,
+@misc{tao2026sfedhifi,
       title={SFedHIFI: Fire Rate-Based Heterogeneous Information Fusion for Spiking Federated Learning}, 
       author={Ran Tao and Qiugang Zhan and Shantian Yang and Xiurui Xie and Qi Tian and Guisong Liu},
       year={2026},
