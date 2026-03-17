@@ -5,9 +5,7 @@
 
 Official PyTorch implementation of the AAAI 2026 paper:
 
-**SFedHIFI: Fire Rate-Based Heterogeneous Information Fusion for Spiking Federated Learning**
-
-[Paper link (to be added)] 
+**SFedHIFI: Fire Rate-Based Heterogeneous Information Fusion for Spiking Federated Learning**, [AAAI 2026](https://arxiv.org/abs/2603.14956) 
 
 ## Overview
 
@@ -86,7 +84,7 @@ import swanlab
 swanlab.login(api_key="YOUR_API_KEY")
 ```
 
-## Acknowledgements
+## Acknowledgements & Contact Information
 This project builds upon the following open-source projects:
 
 * [Spikingjelly](https://github.com/fangwei123456/spikingjelly)
@@ -94,5 +92,22 @@ This project builds upon the following open-source projects:
 
 We sincerely thank the authors for making their code publicly available.
 
+For help or issues using this git, please submit a GitHub issue.
+
+For other communications related to this git, please contact [rantaostd@gmail.com](rantaostd@gmail.com).
+
 ## Citation
-Coming Soon
+
+If you find this repo useful, please consider citing:
+
+``````
+@misc{tao2026sfedhifiratebasedheterogeneousinformation,
+      title={SFedHIFI: Fire Rate-Based Heterogeneous Information Fusion for Spiking Federated Learning}, 
+      author={Ran Tao and Qiugang Zhan and Shantian Yang and Xiurui Xie and Qi Tian and Guisong Liu},
+      year={2026},
+      eprint={2603.14956},
+      archivePrefix={arXiv},
+      primaryClass={cs.LG},
+      url={https://arxiv.org/abs/2603.14956}, 
+}
+``````
