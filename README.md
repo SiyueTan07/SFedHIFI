@@ -101,6 +101,18 @@ For other communications related to this git, please contact [rantaostd@gmail.co
 If you find this repo useful, please consider citing:
 
 ``````
+@inproceedings{tao2026sfedhifi,
+  title={SFedHIFI: Fire Rate-Based Heterogeneous Information Fusion for Spiking Federated Learning},
+  author={Tao, Ran and Zhan, Qiugang and Yang, Shantian and Xie, Xiurui and Tian, Qi and Liu, Guisong},
+  booktitle={Proceedings of the AAAI Conference on Artificial Intelligence},
+  volume={40},
+  number={31},
+  pages={25878--25886},
+  year={2026}
+}
+``````
+or
+``````
 @misc{tao2026sfedhifi,
       title={SFedHIFI: Fire Rate-Based Heterogeneous Information Fusion for Spiking Federated Learning}, 
       author={Ran Tao and Qiugang Zhan and Shantian Yang and Xiurui Xie and Qi Tian and Guisong Liu},
