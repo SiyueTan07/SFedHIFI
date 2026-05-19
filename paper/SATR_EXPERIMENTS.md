@@ -136,7 +136,7 @@ python main_FL.py \
   --split iid \
   --T 4 \
   --local_epochs 1 \
-  --batch_size 32 \
+  --batch_size 16 \
   --epochs 3 \
   --decay step-2 \
   --lr 0.1 \
@@ -232,7 +232,7 @@ python main_FL.py \
   --split iid \
   --T 10 \
   --local_epochs 2 \
-  --batch_size 32 \
+  --batch_size 16 \
   --epochs 500 \
   --decay step-250-375 \
   --lr 0.1 \
@@ -270,7 +270,7 @@ python main_FL.py \
   --split iid \
   --T 10 \
   --local_epochs 2 \
-  --batch_size 32 \
+  --batch_size 16 \
   --epochs 800 \
   --decay step-300-575 \
   --lr 0.1 \
@@ -350,7 +350,7 @@ python main_FL.py \
   --split iid \
   --T 10 \
   --local_epochs 2 \
-  --batch_size 32 \
+  --batch_size 16 \
   --epochs 500 \
   --decay step-250-375 \
   --lr 0.1 \
@@ -377,7 +377,7 @@ python main_FL.py \
   --split iid \
   --T 10 \
   --local_epochs 2 \
-  --batch_size 32 \
+  --batch_size 16 \
   --epochs 500 \
   --decay step-250-375 \
   --lr 0.1 \
@@ -406,7 +406,7 @@ python main_FL.py \
   --split iid \
   --T 10 \
   --local_epochs 2 \
-  --batch_size 32 \
+  --batch_size 16 \
   --epochs 500 \
   --decay step-250-375 \
   --lr 0.1 \
@@ -441,7 +441,7 @@ python main_FL.py \
   --split iid \
   --T 10 \
   --local_epochs 2 \
-  --batch_size 32 \
+  --batch_size 16 \
   --epochs 500 \
   --decay step-250-375 \
   --lr 0.1 \
@@ -476,7 +476,7 @@ python main_FL.py \
   --split iid \
   --T 10 \
   --local_epochs 2 \
-  --batch_size 32 \
+  --batch_size 16 \
   --epochs 500 \
   --decay step-250-375 \
   --lr 0.1 \
@@ -511,7 +511,7 @@ python main_FL.py \
   --split iid \
   --T 10 \
   --local_epochs 2 \
-  --batch_size 32 \
+  --batch_size 16 \
   --epochs 500 \
   --decay step-250-375 \
   --lr 0.1 \
@@ -547,7 +547,7 @@ python main_FL.py \
   --split iid \
   --T 10 \
   --local_epochs 2 \
-  --batch_size 32 \
+  --batch_size 16 \
   --epochs 500 \
   --decay step-250-375 \
   --lr 0.1 \
@@ -585,7 +585,7 @@ python main_FL.py \
   --split iid \
   --T 10 \
   --local_epochs 2 \
-  --batch_size 32 \
+  --batch_size 16 \
   --epochs 500 \
   --decay step-250-375 \
   --lr 0.1 \
@@ -628,7 +628,7 @@ python main_FL.py \
   --alpha 1.0 \
   --T 10 \
   --local_epochs 2 \
-  --batch_size 32 \
+  --batch_size 16 \
   --epochs 500 \
   --decay step-250-375 \
   --lr 0.1 \
@@ -664,7 +664,7 @@ python main_FL.py \
   --alpha 0.3 \
   --T 10 \
   --local_epochs 2 \
-  --batch_size 32 \
+  --batch_size 16 \
   --epochs 500 \
   --decay step-250-375 \
   --lr 0.1 \
@@ -700,7 +700,7 @@ python main_FL.py \
   --alpha 0.1 \
   --T 10 \
   --local_epochs 2 \
-  --batch_size 32 \
+  --batch_size 16 \
   --epochs 500 \
   --decay step-250-375 \
   --lr 0.1 \
@@ -739,7 +739,7 @@ python main_FL.py \
   --split iid \
   --T 10 \
   --local_epochs 2 \
-  --batch_size 32 \
+  --batch_size 16 \
   --epochs 500 \
   --decay step-250-375 \
   --lr 0.1 \
@@ -774,7 +774,7 @@ python main_FL.py \
   --split iid \
   --T 10 \
   --local_epochs 2 \
-  --batch_size 32 \
+  --batch_size 16 \
   --epochs 500 \
   --decay step-250-375 \
   --lr 0.1 \
@@ -809,7 +809,7 @@ python main_FL.py \
   --split iid \
   --T 10 \
   --local_epochs 2 \
-  --batch_size 32 \
+  --batch_size 16 \
   --epochs 500 \
   --decay step-250-375 \
   --lr 0.1 \
