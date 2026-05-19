@@ -1,0 +1,490 @@
+\documentclass{article} % For LaTeX2e
+\usepackage{iclr2026_conference,times}
+
+% Optional math commands from https://github.com/goodfeli/dlbook_notation.
+\input{math_commands.tex}
+
+\usepackage{hyperref}
+\usepackage{url}
+\usepackage{amsmath, amssymb, amsthm}
+\usepackage{booktabs}
+\usepackage{graphicx}
+\usepackage{multirow}
+\usepackage{algorithm}
+\usepackage{algpseudocode}
+\usepackage{xcolor}
+\usepackage{colortbl}
+\usepackage{tcolorbox}
+\usepackage{enumitem}
+\usepackage{xspace}
+
+% ===== custom commands =====
+\newcommand{\method}{SATR\xspace}
+\newcommand{\methodbf}{\textbf{SATR}}
+\newcommand{\methodfull}{Spike-Aware Tucker Rank Calibration\xspace}
+\newcommand{\todo}[1]{{\color{red}\textbf{[TODO: #1]}}}
+\newcommand{\eg}{e.g.,\xspace}
+\newcommand{\ie}{i.e.,\xspace}
+\newcommand{\etal}{\textit{et al.}\xspace}
+\DeclareMathOperator*{\argmax}{arg\,max}
+\DeclareMathOperator*{\argmin}{arg\,min}
+
+\newtheorem{proposition}{Proposition}
+\newtheorem{corollary}{Corollary}
+\newtheorem{definition}{Definition}
+
+\title{Spike-Aware Tucker Rank Calibration \\ for Heterogeneous Spiking Federated Learning}
+
+% Authors hidden for double-blind review.
+\author{Anonymous authors\\
+Paper under double-blind review}
+
+\newcommand{\fix}{\marginpar{FIX}}
+\newcommand{\new}{\marginpar{NEW}}
+
+%\iclrfinalcopy % Uncomment for camera-ready version, but NOT for submission.
+\begin{document}
+
+\maketitle
+
+% =====================================================================
+\begin{abstract}
+We study heterogeneous Spiking Federated Learning (SFL), where edge clients train Spiking Neural Networks (SNNs) with different capacity tiers under a limited communication budget. Recent heterogeneous SFL systems such as SFedHIFI use shared low-rank filter banks to align clients of different sizes, but their rank budgets are fixed before training and are not calibrated to the spike activity that actually appears on each client. This leaves a practical question unanswered: \emph{which shared low-rank components are worth communicating and updating when only a subset can be afforded?} We propose \methodfull (\methodbf), a conservative extension of the SFedHIFI/FLANC backbone that treats spike statistics as a lightweight, privacy-preserving signal for budgeted component selection. \method keeps the global parameter space and capacity tiers unchanged, and periodically selects active filter-bank/Tucker components using a normalised score that combines (i) spike-weighted component activity derived from locally measured firing rates and (ii) a first-order Taylor importance term. Unlike element-wise dynamic sparse training, \method makes no claim that component removal is exactly lossless; instead it uses spike activity as a measurable proxy for component utilisation and evaluates it against strong within-backbone baselines including static SFedHIFI, random selection, magnitude selection, Taylor-only selection, spike-only selection and an element-wise SIFS variant. The resulting formulation gives a more controlled path from static heterogeneous SFL to spike-aware communication budgets without introducing client-specific model dimensions or complex cross-rank aggregation.
+\end{abstract}
+
+% =====================================================================
+\section{Introduction}
+\label{sec:intro}
+
+Spiking Neural Networks (SNNs) couple event-driven binary activations with temporal dynamics, offering an energy-efficient alternative to Artificial Neural Networks (ANNs) on neuromorphic or event-driven hardware~\citep{roy2019nature, davies2018loihi}. Federated Learning (FL)~\citep{mcmahan2017fedavg} is a natural deployment setting for SNNs because edge clients often face simultaneous constraints on privacy, bandwidth and energy~\citep{venkatesha2021federated, skatchkovsky2020federated}. A recent line of heterogeneous SFL systems, exemplified by SFedHIFI~\citep{tao2026sfedhifi}, addresses capacity mismatch by sharing low-rank filter banks across clients of different sizes. This is a useful backbone, but its rank or component budget is fixed by design rather than calibrated to the spike activity observed during federated training.
+
+\textbf{The practical gap.} In SFedHIFI-style backbones, the shared filter bank $B^l$ in Eq.~(\ref{eq:flanc}) is the main object communicated and aggregated across clients. However, not every shared component is equally used by every client or every layer: some components primarily connect to presynaptic channels that rarely fire, while others align with active spike pathways. A static component budget therefore spends communication on components whose effective utilisation may be low. Communication-only sparsification methods can reduce transmitted gradients, but they do not answer the structured question that matters for heterogeneous SFL: \emph{which shared low-rank/filter-bank components should remain active under a fixed budget?}
+
+\textbf{Spike activity as a calibration signal.} The BPTT gradient of a single synapse contains the presynaptic spike as a multiplicative gate,
+\begin{equation}
+\frac{\partial L}{\partial w_{ij}} \;=\; \sum_{t=1}^{T} \delta_j(t)\, s_i(t),
+\qquad s_i(t) \in \{0, 1\}.
+\label{eq:bptt-grad-intro}
+\end{equation}
+At the element level, a fully silent presynaptic neuron makes the corresponding local gradient exactly zero. We use this fact conservatively: rather than claiming that whole low-rank components are exactly lossless to remove, we treat spike rates as a locally measurable, privacy-preserving proxy for component utilisation. The resulting method ranks shared components by how much of their energy lies on active spike channels, combined with a normalised first-order Taylor term.
+
+\textbf{Contributions.} We propose \methodfull (\methodbf), a conservative, SFedHIFI-compatible component-selection method:
+\begin{itemize}[leftmargin=*, itemsep=2pt, topsep=2pt]
+    \item \textbf{Spike-aware component score} (\S\ref{sec:method-score}). We lift the spike-rate signal from Eq.~(\ref{eq:bptt-grad-intro}) to filter-bank/Tucker components through a normalised spike-weighted activity score, and combine it with a normalised Taylor proxy to avoid mixing quantities with incompatible scales.
+    \item \textbf{Budgeted component selection} (\S\ref{sec:method-budget}). We keep the global SFedHIFI parameter space fixed and select a Top-$K$ subset of components to update and communicate. This avoids client-specific model dimensions and complex cross-rank aggregation.
+    \item \textbf{Conservative theory} (\S\ref{sec:method-theory}). We prove only the claims needed for the method: element-wise spike silence zeroes local gradients, spike-weighted component activity upper-bounds component gradient energy under bounded-error assumptions, and Top-$K$ selection solves the stated proxy-budget problem.
+    \item \textbf{Solid evaluation protocol} (\S\ref{sec:experiments}). We evaluate against within-backbone baselines: static SFedHIFI, random component selection, magnitude-only, Taylor-only, spike-only, no-normalisation and an element-wise SIFS variant.
+\end{itemize}
+
+\begin{figure}[t]
+\centering
+\fbox{\parbox{0.95\linewidth}{\centering\vspace{1.6cm}
+\textbf{[Figure 1 placeholder]} SATR overview.\\[3pt]
+\emph{Left}: each client measures layer-wise spike rates during local SNN training.\\
+\emph{Middle}: shared filter-bank/Tucker components receive a normalised spike-plus-Taylor importance score.\\
+\emph{Right}: the server keeps the same global SFedHIFI parameter space but communicates only a budgeted Top-$K$ component subset.\vspace{1.6cm}}}
+\caption{\textbf{\methodbf at a glance.} \method turns locally measured spike activity into a structured component-selection signal for the shared SFedHIFI backbone, without changing the capacity tiers or introducing client-specific rank dimensions.}
+\label{fig:overview}
+\end{figure}
+
+\textbf{Why this matters.} The goal is not to replace SFedHIFI with a more complicated adaptive-rank theory, but to make its static shared components measurable and budget-aware. This keeps the work close to the original heterogeneous SFL problem while producing falsifiable predictions: selected components should correlate with spike-active pathways, outperform non-spiking selection rules under the same communication budget, and remain stable across client sampling and non-IID partitions.
+
+% =====================================================================
+\section{Related Work}
+\label{sec:related}
+
+\textbf{Spiking federated learning.} Early SFL work ports FedAvg to homogeneous SNN clients and studies the expected energy advantage over ANN-FL~\citep{venkatesha2021federated, skatchkovsky2020federated}. More recent work considers communication reduction~\citep{nguyen2024flts, chaki2023communication}, label or firing-rate imbalance~\citep{yu2025fedlec, zhan2024sfedca}, and heterogeneous capacity backbones such as SFedHIFI~\citep{tao2026sfedhifi}. We build directly on the SFedHIFI/FLANC parameterisation and ask a narrower question: given a shared component bank, can spike statistics calibrate which components deserve the communication budget?
+
+\textbf{SNN sparsity \& pruning.} Centralised SNN pruning and dynamic sparse training methods use magnitude, gradient or SNIP-style scores to reduce inference cost~\citep{deng2021comprehensive, chen2021gradr, shen2023esl, su2024stds, yin2023mint}. These works motivate spike-aware importance estimation, but they do not address federated aggregation or capacity-tier alignment. Our element-wise exact-zero observation is used only as a supporting fact; the main method is a structured component-selection rule for the shared heterogeneous SFL backbone.
+
+\textbf{Low-rank and adaptive-rank federated learning.} Low-rank decompositions are widely used for efficient convolutional models and parameter-efficient adaptation. Recent federated PEFT methods such as FedARA, HSplitLoRA and ILoRA study adaptive or heterogeneous LoRA ranks in language/foundation-model settings. These papers motivate rank/component budgeting, but their LoRA factors and aggregation assumptions do not directly solve SNN filter-bank selection. We therefore use them as related motivation rather than as primary baselines.
+
+\textbf{Heterogeneous federated learning.} HeteroFL~\citep{diao2020heterofl}, FjORD~\citep{horvath2021fjord} and FedRolex~\citep{alam2022fedrolex} train sub-networks of different widths under a shared model. \method shares their goal of budget-aware heterogeneous training, but does not change client model dimensions. It leaves the SFedHIFI capacity tiers fixed and selects active shared components within that common space.
+
+% =====================================================================
+\section{Preliminaries}
+\label{sec:prelim}
+
+\textbf{Spiking neurons.} We adopt the standard Leaky Integrate-and-Fire (LIF) model. For neuron $j$ in layer $l$ at time step $t \in \{1,\dots,T\}$:
+\begin{equation}
+u_j^l[t] = \tau\, u_j^l[t-1] (1 - s_j^l[t-1]) + \sum_i w_{ij}^l\, s_i^{l-1}[t],\qquad s_j^l[t] = \mathbb{H}\big(u_j^l[t] - V_{\text{th}}\big),
+\label{eq:lif}
+\end{equation}
+where $u_j^l[t]$ is the membrane potential, $\tau \in (0,1)$ the leak factor, $V_{\text{th}}$ the firing threshold, $\mathbb{H}(\cdot)$ the Heaviside step, and $s_j^l[t]\in\{0,1\}$ the binary spike. The surrogate gradient $\partial s/\partial u \approx \alpha\,\mathrm{atan}'(\beta(u-V_{\text{th}}))$ is used only during backward~\citep{neftci2019surrogate}.
+
+\textbf{BPTT error signal and gradient.} Following standard SNN notation, we define the time-resolved error
+\begin{equation}
+\delta_j^l[t] \;:=\; \frac{\partial L}{\partial u_j^l[t]},
+\label{eq:delta}
+\end{equation}
+so that the gradient of a single synapse $w_{ij}$ decomposes through time as
+\begin{equation}
+\frac{\partial L}{\partial w_{ij}} \;=\; \sum_{t=1}^{T} \delta_j(t)\, s_i(t).
+\label{eq:bptt-grad}
+\end{equation}
+Equation~(\ref{eq:bptt-grad}) is the workhorse of our analysis: the binary spike $s_i(t)$ acts as a \emph{multiplicative gate} on the error signal at every time step.
+
+\textbf{Heterogeneous SFL with shared filter banks (FLANC).} Following SFedHIFI~\citep{tao2026sfedhifi}, each capacity tier $\phi\in\Phi=\{0.25,0.5,0.75,1\}$ instantiates a Spiking-ResNet18 whose two $3\!\times\!3$ convolutions in every BasicBlock are factorised as
+\begin{equation}
+W_{(p)}^{l} \;=\; C_{(p)}^{l}\,\big(B^{l}\big)^{\!\top}, \qquad B^l \in \mathbb{R}^{n_b \times d_b \times 3 \times 3},\;\; C_{(p)}^l \in \mathbb{R}^{c_{\text{out}}\times n_b},
+\label{eq:flanc}
+\end{equation}
+where the filter bank $B^l$ is \emph{shared across capacity tiers and across clients}, while the coefficient matrix $C_{(p)}^l$ is per-tier. We retain this backbone --- both for fair comparison with SFedHIFI and because $B^l$ is the natural target of federated sparsity --- and apply \method to the per-block filter banks \texttt{filter\_bank\_1} and \texttt{filter\_bank\_2}.
+
+\textbf{Federated objective and component budget.} Let $\theta=\{B^l, C_{(p)}^l\}_{l,p}$ denote the SFedHIFI parameter set. Instead of changing the dimension of $B^l$, \method maintains a fixed component bank $B^l = \{B_k^l\}_{k=1}^{n_b}$ and selects an active subset $\mathcal{K}_l^t\subseteq\{1,\dots,n_b\}$ at communication round $t$. With selected clients $S_t$ and local empirical risks $\mathcal{L}_c$, the operational objective is
+\begin{equation}
+\min_{\theta,\{\mathcal{K}_l^t\}} \; \frac{1}{|S_t|}\sum_{c\in S_t} \mathcal{L}_c\!\left(\theta; \{\mathcal{K}_l^t\}_{l}\right)
+\quad \text{s.t.}\quad |\mathcal{K}_l^t| \le K_l(t),
+\label{eq:objective}
+\end{equation}
+where $K_l(t)$ is a layer-wise communication budget. Components outside $\mathcal{K}_l^t$ are kept in the global model but are not communicated or locally updated in that round. This fixed-space design is the main conservative choice: all clients still live in the same SFedHIFI parameterisation, so standard aggregation remains well-defined.
+
+% =====================================================================
+\section{The \methodbf Method}
+\label{sec:method}
+
+\subsection{Element-wise Spike Silence: A Supporting Fact}
+\label{sec:method-silence}
+
+We start from a fact that is exact at the level of individual synapses, but use it only as motivation for component scoring.
+\begin{proposition}[Exact gradient zeroing under spike silence]
+\label{prop:exact-zero}
+Let $w_{ij}^l$ be a synapse in an SNN trained by BPTT with the LIF dynamics of Eq.~(\ref{eq:lif}). If the presynaptic spike train is identically zero over the local round, $s_i^{l-1}[t]=0$ for all $t \in [1,T]$, then $\partial L / \partial w_{ij}^l = 0$ exactly, independent of the surrogate function used to compute $\delta_j^l[t]$.
+\end{proposition}
+\begin{proof}[Proof sketch]
+Eq.~(\ref{eq:bptt-grad}) writes the gradient as $\sum_t \delta_j(t)s_i(t)$. Under $s_i(t)=0$ for all $t$, every summand is zero. The surrogate only affects $\delta_j(t)$ and cannot remove the multiplicative zero gate.
+\end{proof}
+
+This proposition should not be over-interpreted: a filter-bank or Tucker component is a structured group of parameters, not a single synapse, and removing a component is not guaranteed to be lossless. \method therefore uses spike activity as a \emph{proxy for component utilisation}, not as a certificate of exact-zero component loss.
+
+\subsection{Normalised Spike-Aware Component Score}
+\label{sec:method-score}
+
+For client $c$ and layer $l$, let
+\begin{equation}
+r_i^{(c,l)} := \frac{1}{T|D_c|}\sum_{(x,y)\in D_c}\sum_{t=1}^{T} s_i^{l-1}(t;x)
+\label{eq:spike-rate}
+\end{equation}
+be the empirical firing rate of presynaptic channel $i$. We keep the silence ratio used by element-wise SIFS as a diagnostic quantity,
+\begin{equation}
+f_i^{(c,l)} \;=\; \max\!\Big(0,\; \frac{\theta_s-r_i^{(c,l)}}{\theta_s}\Big) \in [0,1],
+\label{eq:silence-ratio}
+\end{equation}
+but rank/component selection uses the active rate $1-f_i^{(c,l)}$.
+
+Let $B_k^l$ denote the $k$-th shared filter-bank component in layer $l$. Its connection strength to presynaptic channel $i$ is
+\begin{equation}
+a_{ik}^{l} = \left\|B_k^l[i,:,:]\right\|_F^2.
+\label{eq:component-channel-energy}
+\end{equation}
+For implementations that expose explicit Tucker factors, $a_{ik}^{l}$ can instead be the squared loading of input channel $i$ on component $k$; the score below is unchanged. We define a dimensionless spike-utilisation score
+\begin{equation}
+S_{\text{spike}}^{(c,l)}(k)
+= \frac{\sum_i a_{ik}^{l}\,\big(1-f_i^{(c,l)}\big)}{\sum_i a_{ik}^{l}+\epsilon}.
+\label{eq:spike-component-score}
+\end{equation}
+This quantity lies in $[0,1]$ and asks: what fraction of component $k$'s channel energy is placed on channels that actually fire on client $c$?
+
+We combine it with a first-order Taylor proxy for the same component,
+\begin{equation}
+S_{\text{taylor}}^{(c,l)}(k)
+= \left|\left\langle B_k^l,\nabla_{B_k^l}\mathcal{L}_c\right\rangle\right|,
+\label{eq:taylor-component-score}
+\end{equation}
+which approximates the loss change from suppressing component $k$ to first order. To avoid the scale/units problem that arises when adding firing-rate and gradient quantities directly, each term is normalised within a layer and round:
+\begin{equation}
+\operatorname{Norm}_l(x_k)=\frac{x_k-\mu_l(x)}{\sigma_l(x)+\epsilon}.
+\label{eq:normalisation}
+\end{equation}
+The final score is
+\begin{tcolorbox}[colback=blue!4,colframe=blue!50,boxsep=2pt,left=4pt,right=4pt]
+\begin{equation}
+I_{\text{rank}}^{(c,l)}(k)
+= \lambda_s\,\operatorname{Norm}_l\!\left(S_{\text{spike}}^{(c,l)}(k)\right)
++ \lambda_t\,\operatorname{Norm}_l\!\left(S_{\text{taylor}}^{(c,l)}(k)\right).
+\label{eq:rank-score}
+\end{equation}
+\end{tcolorbox}
+High score means that a component is both spike-utilised and first-order important. Default weights are $\lambda_s=\lambda_t=1$; the ablation in \S\ref{sec:exp-ablation} tests spike-only and Taylor-only variants.
+
+\subsection{Budgeted Component Selection}
+\label{sec:method-budget}
+
+At round $t$, the server averages client scores for each layer,
+\begin{equation}
+\bar I_{\text{rank}}^{(l,t)}(k)=\frac{1}{|S_t|}\sum_{c\in S_t} I_{\text{rank}}^{(c,l)}(k),
+\label{eq:score-average}
+\end{equation}
+and selects
+\begin{equation}
+\mathcal{K}_l^t = \operatorname{TopK}_{k\in\{1,\dots,n_b\}}\left(\bar I_{\text{rank}}^{(l,t)}(k),\; K_l(t)\right).
+\label{eq:topk-selection}
+\end{equation}
+Components in $\mathcal{K}_l^t$ are broadcast, updated locally and uploaded; components outside $\mathcal{K}_l^t$ remain stored on the server but are frozen for that round. The budget schedule is written as a retained fraction $q_l(t)=K_l(t)/n_b$ and can be fixed or annealed from $1$ to a target $q_f$ after warmup:
+\begin{equation}
+q_l(t)=q_f+(1-q_f)\left(1-\frac{t-T_w}{T_f-T_w}\right)^3.
+\label{eq:budget-schedule}
+\end{equation}
+Because all clients use the same selected component indices in a round, aggregation is ordinary weighted averaging over the active components:
+\begin{equation}
+\hat B_k^{l,t+1}=\frac{\sum_{c\in S_t} n_c B_{c,k}^{l,t+1}}{\sum_{c\in S_t} n_c},\qquad k\in\mathcal{K}_l^t.
+\label{eq:component-agg}
+\end{equation}
+Inactive components keep their previous server value. This avoids the ill-posedness of averaging client-specific ranks or rotated Tucker subspaces.
+
+\subsection{Conservative Theoretical Claims}
+\label{sec:method-theory}
+
+\begin{proposition}[Spike-weighted activity bounds gradient energy]
+\label{prop:component-bound}
+Assume $|\delta_j^l[t]|\le C_l$ for all output channels and time steps in layer $l$. Then the expected squared gradient energy associated with component $k$ is bounded, up to a layer-dependent constant, by its spike-weighted channel energy:
+\begin{equation}
+\mathbb{E}\left\|\nabla_{B_k^l}\mathcal{L}_c\right\|_F^2
+\;\le\; C_l' \sum_i a_{ik}^{l}\, r_i^{(c,l)}.
+\label{eq:component-bound}
+\end{equation}
+\end{proposition}
+The bound follows from Eq.~(\ref{eq:bptt-grad}) and Cauchy--Schwarz: channels with low spike rate contribute fewer non-zero multiplicative gates. It justifies using Eq.~(\ref{eq:spike-component-score}) as a utilisation proxy, not as an exact loss certificate.
+
+\begin{proposition}[Top-$K$ optimality for the proxy objective]
+\label{prop:topk}
+For a fixed layer budget $K_l$, Eq.~(\ref{eq:topk-selection}) solves
+\begin{equation}
+\max_{\mathcal{K}\subseteq\{1,\dots,n_b\},\; |\mathcal{K}|=K_l}\sum_{k\in\mathcal{K}}\bar I_{\text{rank}}^{(l,t)}(k).
+\label{eq:proxy-objective}
+\end{equation}
+\end{proposition}
+This proposition is simple but important: \method is a budgeted proxy optimiser, not an unconstrained adaptive-rank learner.
+
+\subsection{Putting it Together}
+\label{sec:method-algo}
+
+\begin{algorithm}[t]
+\caption{\methodbf (one communication round)}
+\label{alg:satr}
+\small
+\begin{algorithmic}[1]
+\Require server filter banks $\{B^{l,t}\}$; budget $K_l(t)$; active clients $S_t$
+\State \textbf{Server} broadcasts active components $\{B_k^{l,t}:k\in\mathcal{K}_l^{t-1}\}$ to each client at its SFedHIFI capacity tier
+\For{client $c\in S_t$ \textbf{in parallel}}
+    \State Attach spike-rate hooks; reset accumulators
+    \For{local epoch $e=1..E$, minibatch $(x,y)$}
+        \State Forward through Eq.~(\ref{eq:lif}); accumulate $r_i^{(c,l)}$
+        \State Backward via surrogate gradient; update only active components
+    \EndFor
+    \State Compute $I_{\text{rank}}^{(c,l)}(k)$ for candidate components using Eq.~(\ref{eq:rank-score})
+    \State Upload updated active components and component scores to the server
+\EndFor
+\State \textbf{Server} aggregates active components via Eq.~(\ref{eq:component-agg})
+\State Average scores via Eq.~(\ref{eq:score-average}) and select next active sets via Eq.~(\ref{eq:topk-selection})
+\end{algorithmic}
+\end{algorithm}
+
+\textbf{Communication cost.} If each layer keeps a fraction $q_l(t)$ of $n_b$ shared components, the dominant filter-bank uplink scales approximately as $\sum_l q_l(t)|B^l|$ plus negligible component-index metadata. Unlike element-wise sparse masks, the transmitted support is structured at component granularity, which is easier to encode and aligns with the SFedHIFI backbone.
+
+% =====================================================================
+\section{Experiments}
+\label{sec:experiments}
+
+\subsection{Setup}
+\label{sec:exp-setup}
+
+\textbf{Datasets and partitions.} The core evaluation uses CIFAR-10, CIFAR-100 and CIFAR10-DVS. CIFAR-10 and CIFAR-100 test static-image SNN training under increasing class complexity, while CIFAR10-DVS tests whether the component score remains useful when the input itself is event-based. We follow the SFedHIFI protocol with $N=10$ clients, $K=5$ sampled per round, IID partitions and Dirichlet non-IID partitions with $\alpha\in\{1.0,0.3,0.1\}$.
+
+\textbf{Architecture.} All methods use the same Spiking-ResNet18 FLANC/SFedHIFI backbone with capacity tiers $\Phi=\{0.25,0.5,0.75,1.0\}$. This keeps the comparison focused on component selection rather than architecture differences.
+
+\textbf{Training.} We use LIF neurons with ATan surrogate gradients, local epochs $E=2$, batch size $32$, SGD with momentum $0.9$ and weight decay $10^{-4}$. \method uses $\theta_s=10^{-3}$, $\lambda_s=\lambda_t=1$, warmup $T_w=5$, and final retained component fractions $q_f\in\{0.25,0.5,0.75\}$ unless otherwise specified.
+
+\textbf{Baselines.} We intentionally use strong within-backbone baselines rather than cross-domain LoRA ports: (i) \textbf{SFedHIFI-static}, the original fixed component budget; (ii) \textbf{Random}, random components under the same $q_f$; (iii) \textbf{Magnitude}, Top-$K$ by $\|B_k^l\|_F$; (iv) \textbf{Taylor-only}, Eq.~(\ref{eq:taylor-component-score}) without spike activity; (v) \textbf{Spike-only}, Eq.~(\ref{eq:spike-component-score}) without Taylor; (vi) \textbf{No-normalisation}, direct unnormalised addition of the two scores; and (vii) \textbf{Element-wise SIFS}, a dynamic-sparse variant using the same spike hooks at parameter granularity.
+
+\textbf{Metrics.} We report Top-1 accuracy, per-round uplink MB, retained component fraction, inference energy estimated from spike counts and MAC/AC operation tables~\citep{horowitz2014energy}, and rank-selection stability measured by Jaccard overlap of $\mathcal{K}_l^t$ across seeds and adjacent rounds.
+
+\subsection{Main Budget--Accuracy Trade-off}
+\label{sec:exp-main}
+
+\begin{table}[t]
+\centering
+\caption{\textbf{Main comparison protocol.} All methods share the SFedHIFI backbone and the same retained component fraction $q_f$. This table is a results template; entries must be filled by actual runs before submission.}
+\label{tab:main-iid}
+\small
+\begin{tabular}{lcccc}
+\toprule
+Method & CIFAR-10 Acc.$\uparrow$ & CIFAR-100 Acc.$\uparrow$ & CIFAR10-DVS Acc.$\uparrow$ & Uplink MB$\downarrow$ \\
+\midrule
+SFedHIFI-static & \todo{run} & \todo{run} & \todo{run} & \todo{calc} \\
+Random components & \todo{run} & \todo{run} & \todo{run} & \todo{calc} \\
+Magnitude components & \todo{run} & \todo{run} & \todo{run} & \todo{calc} \\
+Taylor-only components & \todo{run} & \todo{run} & \todo{run} & \todo{calc} \\
+Spike-only components & \todo{run} & \todo{run} & \todo{run} & \todo{calc} \\
+Element-wise SIFS & \todo{run} & \todo{run} & \todo{run} & \todo{calc} \\
+\midrule
+\methodbf & \todo{run} & \todo{run} & \todo{run} & \todo{calc} \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+The key claim to validate is not that \method always increases accuracy, but that it traces a better accuracy--communication frontier than static or non-spiking component selection under the same SFedHIFI backbone.
+
+\subsection{Non-IID and Capacity Heterogeneity}
+\label{sec:exp-noniid}
+
+\begin{table}[t]
+\centering
+\caption{\textbf{Non-IID protocol on CIFAR-10.} The expected signal is whether spike-aware selection remains competitive as label skew increases.}
+\label{tab:noniid}
+\small
+\begin{tabular}{lccc}
+\toprule
+Method & $\alpha{=}1.0$ & $\alpha{=}0.3$ & $\alpha{=}0.1$ \\
+\midrule
+SFedHIFI-static & \todo{run} & \todo{run} & \todo{run} \\
+Random components & \todo{run} & \todo{run} & \todo{run} \\
+Taylor-only components & \todo{run} & \todo{run} & \todo{run} \\
+\methodbf & \todo{run} & \todo{run} & \todo{run} \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+We also report results per capacity tier $\phi\in\Phi$ to ensure that the selected components do not disproportionately benefit large clients while degrading small clients.
+
+\subsection{Ablations}
+\label{sec:exp-ablation}
+
+\begin{table}[t]
+\centering
+\caption{\textbf{Ablation checklist.} These ablations directly test the design choices that make the method conservative and well-scaled.}
+\label{tab:ablation}
+\small
+\begin{tabular}{lcc}
+\toprule
+Variant & What it tests & CIFAR-10 Acc. \\
+\midrule
+\methodbf full & spike + Taylor + normalisation & \todo{run} \\
+Spike-only & contribution of Taylor proxy & \todo{run} \\
+Taylor-only & contribution of spike utilisation & \todo{run} \\
+No normalisation & scale/units sensitivity & \todo{run} \\
+Random selection & benefit beyond budget reduction & \todo{run} \\
+Per-client Top-$K$ & risk of client-specific support mismatch & \todo{run} \\
+Element-wise SIFS & structured vs unstructured support & \todo{run} \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+The most important ablation is ``No normalisation'': if it matches \method, the proposed score is not robustly defined; if it fails, the normalised formulation in Eq.~(\ref{eq:rank-score}) is empirically justified.
+
+\subsection{What Does \method Select?}
+\label{sec:exp-mask}
+
+\begin{figure}[t]
+\centering
+\fbox{\parbox{0.85\linewidth}{\centering\vspace{2cm}
+\textbf{[Figure 2 placeholder: selected component heatmap]}\\[4pt]
+Rows: capacity tiers $\phi\in\{0.25,0.5,0.75,1.0\}$.\\
+Columns: ResNet18 BasicBlocks and filter-bank components.\\
+Colour: selection frequency of $k\in\mathcal{K}_l^t$ across rounds and seeds.
+\vspace{2cm}}}
+\caption{\textbf{Component selection pattern.} A solid result should show non-random, layer-dependent component usage that correlates with spike activity rather than merely with component magnitude.}
+\label{fig:mask-vis}
+\end{figure}
+
+We further report (i) the correlation between $S_{\text{spike}}$ and selection frequency, (ii) the Jaccard overlap of selected sets across adjacent rounds, and (iii) selection stability across seeds. These diagnostics are essential because the paper's claim is about calibrated component use, not only final accuracy.
+
+% =====================================================================
+\section{Discussion}
+\label{sec:discussion}
+
+\textbf{What \method does and does not claim.} Proposition~\ref{prop:exact-zero} is exact only for individual synapses. \method does not claim that removing an entire filter-bank/Tucker component is lossless. Its claim is deliberately weaker and easier to test: spike rates provide a useful utilisation signal for structured component budgeting in the SFedHIFI backbone. This distinction is important because it avoids conflating element-wise dynamic sparse training with rank/component calibration.
+
+\textbf{Why fixed-space component selection is conservative.} A more ambitious approach would assign different Tucker ranks to different clients and then align heterogeneous subspaces during aggregation. That direction is interesting but introduces rotation ambiguity, changing model dimensions and non-trivial convergence questions. \method avoids these issues by keeping all components in the server model and selecting only which components are updated and communicated in a given round. This keeps aggregation in Eq.~(\ref{eq:component-agg}) simple and makes the baselines within-backbone and fair.
+
+\textbf{Relationship to element-wise SIFS.} Element-wise SIFS is a useful diagnostic baseline: it tests whether spike-aware unstructured sparsity already explains the gain. \method should be preferred only if structured component selection achieves a better communication--accuracy trade-off or substantially lower encoding overhead. If element-wise SIFS dominates under the same budget, the rank-level hypothesis is falsified.
+
+\textbf{Contribution ratio and interpretability.} Following SFedHIFI, we also measure the per-block Contribution Ratio
+\begin{equation}
+\mathrm{CR} \;=\; \frac{\|\,o_{\text{conv2}}\,\|}{\|\,o_{\text{conv2}}\,\| + \|\,o_{\text{shortcut}}\,\|+\epsilon},
+\label{eq:cr}
+\end{equation}
+which quantifies how much the residual branch contributes versus the shortcut. We use CR together with selection-frequency heatmaps to check whether \method selects components that correspond to genuinely active residual pathways rather than arbitrary high-magnitude filters.
+
+% =====================================================================
+\section{Limitations}
+\label{sec:limitations}
+
+\textbf{Component granularity.} \method selects full shared components rather than individual weights. This gives structured communication and avoids mask overhead, but it may be less flexible than element-wise sparsity when only a few entries inside a component are inactive.
+
+\textbf{Silence-threshold sensitivity.} Choosing $\theta_s$ too high makes moderately active channels appear under-utilised; too low and the spike score loses contrast. We use $\theta_s = 10^{-3}$ as a default and require the sensitivity study in Appendix~\ref{app:threshold} before making final claims.
+
+\textbf{Static FLANC backbone.} \method inherits the FLANC/SFedHIFI parameterisation of shared filter banks. Architectures with different per-tier kernel shapes or mixture-of-experts style routing would require an additional design step to define comparable shared components.
+
+\textbf{No malicious-client analysis.} We do not study robustness against clients that fabricate spike statistics or component scores. Secure aggregation or robust score aggregation is orthogonal and should be considered for adversarial deployments.
+
+% =====================================================================
+\section{Conclusion}
+\label{sec:conclusion}
+
+We presented \methodfull (\methodbf), a conservative extension of SFedHIFI that uses locally measured spike activity to calibrate which shared filter-bank/Tucker components should be communicated under a fixed budget. The method keeps the global parameter space unchanged, uses normalised spike-plus-Taylor component scores to avoid scale mismatches, and is evaluated against within-backbone baselines rather than cross-domain adaptive-rank ports. This positions \method as a solid, falsifiable step from static heterogeneous SFL toward spike-aware component budgeting.
+
+% =====================================================================
+\section*{Reproducibility Statement}
+All algorithmic details are specified in \S\ref{sec:method} and Algorithm~\ref{alg:satr}; all hyperparameters and baselines are specified in \S\ref{sec:exp-setup}; theoretical claims are limited to Proposition~\ref{prop:exact-zero}, Proposition~\ref{prop:component-bound} and Proposition~\ref{prop:topk}. Code, scripts and seed lists used to produce every table and figure will be released upon acceptance. The \method implementation is intended to extend the public SFedHIFI codebase with component-score hooks and budgeted component communication.
+
+% =====================================================================
+\section*{Ethics Statement}
+\method targets edge devices where energy and bandwidth are the primary constraints; we expect a net positive social impact through lower-carbon distributed training. Like all FL systems, \method does not by itself provide formal privacy guarantees; combining it with differential privacy~\citep{dwork2014dp} or secure aggregation~\citep{bonawitz2017secagg} is an orthogonal and recommended deployment step. The benchmarks used (Fashion-MNIST, CIFAR-10/100, CIFAR10-DVS, N-Caltech101) contain no personally identifiable information.
+
+% ===== LLM Disclosure (ICLR 2026 requirement) =====
+\section*{LLM Usage Disclosure}
+We used large language models as writing assistants to polish prose and to assist with LaTeX formatting. All algorithmic ideas, derivations, experimental design, and analyses are the authors' original work. No LLM-generated content was inserted without verification.
+
+\bibliography{iclr2026_conference}
+\bibliographystyle{iclr2026_conference}
+
+\appendix
+% =====================================================================
+\section{Proofs}
+\label{app:proofs}
+
+\subsection{Exact Gradient Zeroing under Spike Silence (Proposition~\ref{prop:exact-zero})}
+\label{app:proof-exact-zero}
+\begin{proof}
+Let $w_{ij}^l$ be a synapse from presynaptic channel $i$ in layer $l-1$ to neuron $j$ in layer $l$. Under BPTT with the LIF dynamics of Eq.~(\ref{eq:lif}), $w_{ij}^l$ contributes to the loss only through the membrane potential update at every step,
+\[
+u_j^l[t] \;\supset\; w_{ij}^l \, s_i^{l-1}[t],
+\]
+so $\partial u_j^l[t] / \partial w_{ij}^l = s_i^{l-1}[t]$. By the chain rule,
+\[
+\frac{\partial L}{\partial w_{ij}^l} \;=\; \sum_{t=1}^{T} \frac{\partial L}{\partial u_j^l[t]}\,\frac{\partial u_j^l[t]}{\partial w_{ij}^l} \;=\; \sum_{t=1}^{T} \delta_j^l[t]\, s_i^{l-1}[t].
+\]
+Under the hypothesis $s_i^{l-1}[t]=0$ for all $t\in[1,T]$, every summand is identically zero, and so is the sum. Note that this argument is completely independent of how $\delta_j^l[t]$ is computed in backward: even if surrogate gradients introduce bias in $\delta$, the multiplicative factor $s_i^{l-1}[t]$ is the \emph{actual} forward spike (binary, recorded during forward), so the product vanishes exactly.
+\end{proof}
+
+\subsection{Component Gradient-Energy Bound (Proposition~\ref{prop:component-bound})}
+\label{app:proof-component-bound}
+\begin{proof}[Proof sketch]
+For each parameter inside component $B_k^l$, Eq.~(\ref{eq:bptt-grad}) expresses the gradient as a sum of error terms multiplied by presynaptic spikes. Under the bounded-error assumption $|\delta_j^l[t]|\le C_l$, Cauchy--Schwarz bounds the squared gradient contribution associated with presynaptic channel $i$ by a constant times the number of non-zero spike gates from that channel. Averaging over local data gives a factor proportional to $r_i^{(c,l)}$. Summing these channel contributions with component-channel energy weights $a_{ik}^l$ yields Eq.~(\ref{eq:component-bound}), absorbing layer constants into $C_l'$.
+\end{proof}
+
+\subsection{Top-$K$ Proxy Optimality (Proposition~\ref{prop:topk})}
+\label{app:proof-topk}
+\begin{proof}
+The objective in Eq.~(\ref{eq:proxy-objective}) is modular over components and the only constraint is cardinality. Therefore the maximiser is obtained by choosing the $K_l$ largest values of $\bar I_{\text{rank}}^{(l,t)}(k)$, which is exactly Eq.~(\ref{eq:topk-selection}).
+\end{proof}
+
+% =====================================================================
+\section{Additional Ablations and Sensitivity}
+\label{app:additional}
+\todo{Sweep retained component fraction $q_f\in\{0.25,0.5,0.75,1.0\}$; compare fixed vs annealed budgets; report Jaccard selection stability across adjacent rounds and seeds.}
+
+\section{Silence-Threshold Sensitivity}
+\label{app:threshold}
+\todo{Compare $\theta_s\in\{10^{-4},10^{-3},10^{-2},5\!\times\!10^{-2}\}$ and report whether component selection changes smoothly.}
+
+\section{Surrogate Gradient Sensitivity}
+\label{app:surrogate}
+\todo{Compare ATan, rectangular and sigmoid surrogates to verify that the spike-utilisation component is not tied to one backward estimator.}
+
+\section{Contribution Ratio Analysis}
+\label{app:contribution-ratio}
+We additionally measure the structural Contribution Ratio of each ResBlock, defined in Eq.~(\ref{eq:cr}). \todo{Plot CR per block and correlate CR changes with selected component frequency.}
+
+\end{document}

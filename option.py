@@ -226,6 +226,69 @@ parser.add_argument('--save_models', action='store_true',
 parser.add_argument('--compare', type=str, default='',
                     help='experiments to compare with')
 parser.add_argument('--project', type=str, default='')
+
+# ============================================================
+# SIFS / SATR extensions on top of SFedHIFI FLANC
+# ------------------------------------------------------------
+# --sifs enables element-wise dynamic sparse training.
+# --satr enables conservative component-wise filter-bank selection.
+# When neither flag is given, the default SFedHIFI / Tucker behaviour is used.
+# ============================================================
+parser.add_argument('--sifs', action='store_true',
+                    help='Enable Spike-Induced Federated Sparsity (SIFS).')
+parser.add_argument('--satr', action='store_true',
+                    help='Enable Spike-Aware Tucker Rank/Component Calibration (SATR).')
+parser.add_argument('--satr_retain_ratio', type=float, default=0.5,
+                    help='Final retained fraction of filter-bank components for SATR.')
+parser.add_argument('--satr_init_retain_ratio', type=float, default=1.0,
+                    help='Initial retained component fraction for SATR before annealing.')
+parser.add_argument('--satr_warmup_rounds', type=int, default=5,
+                    help='Number of rounds before SATR starts reducing component budget.')
+parser.add_argument('--satr_final_round', type=int, default=None,
+                    help='Round at which SATR reaches target retain ratio (defaults to int(0.75*epochs)).')
+parser.add_argument('--satr_update_interval', type=int, default=1,
+                    help='Update SATR component masks every K rounds after warmup.')
+parser.add_argument('--satr_baseline', type=str, default='full',
+                    choices=['full', 'static', 'random', 'magnitude', 'taylor', 'spike', 'no_norm', 'no-normalisation', 'no-normalization'],
+                    help='SATR scoring mode / baseline. static keeps all components and reduces to SFedHIFI sync.')
+parser.add_argument('--satr_silence_threshold', type=float, default=1e-3,
+                    help='Mean spike rate below which a channel is treated as silent for SATR.')
+parser.add_argument('--satr_spike_weight', type=float, default=1.0,
+                    help='Weight of the normalised spike-utilisation component in SATR.')
+parser.add_argument('--satr_taylor_weight', type=float, default=1.0,
+                    help='Weight of the normalised Taylor component in SATR.')
+parser.add_argument('--satr_log_scores', action='store_true',
+                    help='Log SATR live component ratios and score statistics to swanlab.')
+parser.add_argument('--satr_plot_interval', type=int, default=0,
+                    help='Save SATR heatmaps every K rounds when --satr_log_scores is enabled. Default 0 disables plot files; .pt diagnostics are still saved.')
+parser.add_argument('--sifs_target_sparsity', type=float, default=0.5,
+                    help='Final target sparsity over filter-bank parameters.')
+parser.add_argument('--sifs_init_sparsity', type=float, default=0.0,
+                    help='Initial sparsity at round 0 (s_0).')
+parser.add_argument('--sifs_warmup_rounds', type=int, default=5,
+                    help='Number of rounds before the first prune/grow update.')
+parser.add_argument('--sifs_final_round', type=int, default=None,
+                    help='Round at which sparsity should reach target (defaults to int(0.75*epochs)).')
+parser.add_argument('--sifs_mask_update_interval', type=int, default=2,
+                    help='Apply a prune/grow update every K rounds after warmup.')
+parser.add_argument('--sifs_rebirth_ratio', type=float, default=0.3,
+                    help='Fraction of currently-zero weights considered as grow candidates per update.')
+parser.add_argument('--sifs_silence_threshold', type=float, default=1e-3,
+                    help='Mean spike rate below which a presynaptic channel is considered silent.')
+parser.add_argument('--sifs_taylor_weight', type=float, default=1.0,
+                    help='Weight of the Taylor magnitude term in I_Prune (tie breaker among silent connections).')
+parser.add_argument('--sifs_silence_weight', type=float, default=10.0,
+                    help='Weight of the spike-emptiness term in I_Prune (dominant term).')
+parser.add_argument('--sifs_crisis_weight', type=float, default=0.0,
+                    help='Coefficient lambda for the spike-rate crisis regularizer.')
+parser.add_argument('--sifs_crisis_floor', type=float, default=0.02,
+                    help='Minimum mean spike rate r_min used in the crisis regularizer.')
+parser.add_argument('--sifs_aggregator', type=str, default='mask_aware',
+                    choices=['mask_aware', 'fedavg'],
+                    help='Aggregator type when SIFS is on. mask_aware = divide by per-element coverage; fedavg = SFedHIFI default.')
+parser.add_argument('--sifs_log_silence', action='store_true',
+                    help='Log per-layer spike-emptiness statistics to swanlab.')
+
 args = parser.parse_args()
 template.set_template(args)
 
@@ -243,3 +306,9 @@ if args.fraction_list:
 
 if args.tucker_epochs == None:
     args.tucker_epochs = int(np.round(0.45 * args.epochs))
+
+if args.sifs and args.sifs_final_round is None:
+    args.sifs_final_round = int(np.round(0.75 * args.epochs))
+
+if args.satr and args.satr_final_round is None:
+    args.satr_final_round = int(np.round(0.75 * args.epochs))

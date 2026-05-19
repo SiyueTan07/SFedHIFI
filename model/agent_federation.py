@@ -23,6 +23,14 @@ from spikingjelly.activation_based import functional, monitor, neuron
 import torch.nn.functional as F
 from collections import Counter
 
+from model.sifs_utils import (
+    SpikeSilenceTracker,
+    register_sifs_masks,
+    apply_sifs_masks,
+    gather_sifs_state,
+    crisis_loss,
+)
+
 
 class Agent:
     def __init__(self, *args):
@@ -52,6 +60,18 @@ class Agent:
             new_args.net_fraction = net_f
             model_list.append(module.make_model(new_args))
         self.model_list = model_list
+
+        # ---- SIFS/SATR: register mask buffers on filter banks (no-op if disabled)
+        self.sifs_enabled = bool(getattr(self.args, 'sifs', False))
+        self.satr_enabled = bool(getattr(self.args, 'satr', False))
+        self.filter_mask_enabled = self.sifs_enabled or self.satr_enabled
+        self.sifs_silence_rates = {}  # last computed {layer_name: tensor[C]}
+        if self.filter_mask_enabled:
+            n_masks = 0
+            for m in self.model_list:
+                n_masks += register_sifs_masks(m)
+            tag = "SATR" if self.satr_enabled and not self.sifs_enabled else "SIFS/SATR"
+            print(f"[{tag}] Registered {n_masks} filter-bank mask buffers across {len(self.model_list)} capacity tiers.")
 
         print("Filter bank synced at initalization!")
         self.sync_at_init()
@@ -156,12 +176,27 @@ class Agent:
         loss_orth_list = []
         n_samples = 0
         self.model_list[model_id] = self.model_list[model_id].to(self.device)
+
+        # ---- SIFS/SATR bookkeeping ----------------------------------------
+        tracker = None
+        if self.filter_mask_enabled:
+            tracker = SpikeSilenceTracker().attach(self.model_list[model_id])
+            tracker.reset()
+            # ensure inactive/pruned filter-bank positions are zero before training begins
+            apply_sifs_masks(self.model_list[model_id])
+
         for epoch in range(epochs):
             for batch, (img, label) in enumerate(loader_train):
                 img, label = self.prepare(img, label)
                 n_samples += img.size(0)
 
                 self.optimizer_list[model_id].zero_grad()
+
+                # Re-apply mask each step so optimizer momentum / weight decay
+                # cannot resurrect inactive/pruned positions between updates.
+                if self.filter_mask_enabled:
+                    apply_sifs_masks(self.model_list[model_id])
+
                 prediction = self.forward(img, model_id)
 
                 loss, _ = self.loss_list[model_id](prediction, label)
@@ -173,17 +208,51 @@ class Agent:
                     loss = loss_orth + loss
                     loss_orth_list.append(loss_orth.item())
 
+                # ---- SIFS crisis regularizer (uses running silence stats)
+                if self.sifs_enabled and getattr(self.args, 'sifs_crisis_weight', 0.0) > 0.0 and tracker is not None:
+                    cl = crisis_loss(
+                        tracker,
+                        floor=self.args.sifs_crisis_floor,
+                        weight=self.args.sifs_crisis_weight,
+                    )
+                    if cl.requires_grad is False and cl.item() > 0:
+                        # crisis_loss is built from a CPU-side running stat
+                        # so we add it as a scalar penalty (no autograd path).
+                        # It still serves as a diagnostic and as a hard
+                        # constraint via early stopping if needed.
+                        loss = loss + cl.to(loss.device)
+
                 loss.backward()
 
                 self.optimizer_list[model_id].step()
+
+                # After step: zero out inactive/pruned positions again so masks stay clean
+                if self.filter_mask_enabled:
+                    apply_sifs_masks(self.model_list[model_id])
 
                 loss_list.append(loss.item())
                 functional.reset_net(self.model_list[model_id])
 
         log_train = self.loss_list[model_id].log_train[-1,:]/n_samples
+
+        # ---- SIFS/SATR: stash per-channel spike stats then detach hooks ----
+        if self.filter_mask_enabled and tracker is not None:
+            self.sifs_silence_rates = tracker.mean_rates()
+            tracker.detach()
+
         self.model_list[model_id] = self.model_list[model_id].to('cpu')
 
         return sum(loss_list)/len(loss_list), sum(loss_orth_list)/len(loss_orth_list), log_train
+
+    def get_sifs_state(self, model_id):
+        """Return ``{full_param_name: {'weight','mask'}}`` for the given tier."""
+        if not self.filter_mask_enabled:
+            return {}
+        return gather_sifs_state(self.model_list[model_id])
+
+    def get_sifs_silence(self):
+        """Return last-round per-LIF-layer mean spike rates (CPU tensors)."""
+        return dict(self.sifs_silence_rates)
 
 
     def train_one_step(self, img, label):

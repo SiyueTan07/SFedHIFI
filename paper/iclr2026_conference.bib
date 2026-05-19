@@ -1,0 +1,340 @@
+% =============================================================================
+% Bibliography for "Spike-Induced Federated Sparsity" (ICLR 2026 submission).
+%
+% Conventions:
+%   * Every key here matches one used in main.tex.
+%   * Venue / year are filled in from publicly available metadata (arXiv,
+%     OpenReview, publisher pages). Entries marked CHECK-METADATA need a final
+%     pass against the camera-ready proceedings (page numbers, DOIs).
+%   * For very recent works (2025-2026) where the proceedings have not been
+%     finalised, we provide the arXiv reference and mark the venue as accepted-
+%     at when known.
+% =============================================================================
+
+% ---------- SNN / neuromorphic / energy ----------
+@article{roy2019nature,
+  title   = {Towards spike-based machine intelligence with neuromorphic computing},
+  author  = {Roy, Kaushik and Jaiswal, Akhilesh and Panda, Priyadarshini},
+  journal = {Nature},
+  volume  = {575},
+  number  = {7784},
+  pages   = {607--617},
+  year    = {2019},
+  doi     = {10.1038/s41586-019-1677-2}
+}
+
+@article{davies2018loihi,
+  title   = {{Loihi}: A neuromorphic manycore processor with on-chip learning},
+  author  = {Davies, Mike and Srinivasa, Narayan and Lin, Tsung-Han and Chinya, Gautham and Cao, Yongqiang and Choday, Sri Harsha and Dimou, Georgios and Joshi, Prasad and Imam, Nabil and Jain, Shweta and others},
+  journal = {IEEE Micro},
+  volume  = {38},
+  number  = {1},
+  pages   = {82--99},
+  year    = {2018},
+  doi     = {10.1109/MM.2018.112130359}
+}
+
+@inproceedings{horowitz2014energy,
+  title     = {1.1 {Computing's} energy problem (and what we can do about it)},
+  author    = {Horowitz, Mark},
+  booktitle = {IEEE International Solid-State Circuits Conference (ISSCC)},
+  pages     = {10--14},
+  year      = {2014},
+  doi       = {10.1109/ISSCC.2014.6757323}
+}
+
+@article{neftci2019surrogate,
+  title   = {Surrogate gradient learning in spiking neural networks: Bringing the power of gradient-based optimization to spiking neural networks},
+  author  = {Neftci, Emre O. and Mostafa, Hesham and Zenke, Friedemann},
+  journal = {IEEE Signal Processing Magazine},
+  volume  = {36},
+  number  = {6},
+  pages   = {51--63},
+  year    = {2019},
+  doi     = {10.1109/MSP.2019.2931595}
+}
+
+@article{fang2023spikingjelly,
+  title   = {{SpikingJelly}: An open-source machine learning infrastructure platform for spike-based intelligence},
+  author  = {Fang, Wei and Chen, Yanqi and Ding, Jianhao and Yu, Zhaofei and Masquelier, Timoth{\'e}e and Chen, Ding and Huang, Liwei and Zhou, Huihui and Li, Guoqi and Tian, Yonghong},
+  journal = {Science Advances},
+  volume  = {9},
+  number  = {40},
+  pages   = {eadi1480},
+  year    = {2023},
+  doi     = {10.1126/sciadv.adi1480}
+}
+
+% ---------- Federated learning fundamentals ----------
+@inproceedings{mcmahan2017fedavg,
+  title     = {Communication-efficient learning of deep networks from decentralized data},
+  author    = {McMahan, H. Brendan and Moore, Eider and Ramage, Daniel and Hampson, Seth and Aguera y Arcas, Blaise},
+  booktitle = {Artificial Intelligence and Statistics (AISTATS)},
+  year      = {2017},
+  pages     = {1273--1282}
+}
+
+@inproceedings{li2020fedprox,
+  title     = {Federated optimization in heterogeneous networks},
+  author    = {Li, Tian and Sahu, Anit Kumar and Zaheer, Manzil and Sanjabi, Maziar and Talwalkar, Ameet and Smith, Virginia},
+  booktitle = {Machine Learning and Systems (MLSys)},
+  year      = {2020}
+}
+
+@inproceedings{wang2020fednova,
+  title     = {Tackling the objective inconsistency problem in heterogeneous federated optimization},
+  author    = {Wang, Jianyu and Liu, Qinghua and Liang, Hao and Joshi, Gauri and Poor, H. Vincent},
+  booktitle = {Advances in Neural Information Processing Systems (NeurIPS)},
+  year      = {2020}
+}
+
+% ---------- Heterogeneous FL ----------
+@inproceedings{diao2020heterofl,
+  title     = {{HeteroFL}: Computation and communication efficient federated learning for heterogeneous clients},
+  author    = {Diao, Enmao and Ding, Jie and Tarokh, Vahid},
+  booktitle = {International Conference on Learning Representations (ICLR)},
+  year      = {2021}
+}
+
+@inproceedings{horvath2021fjord,
+  title     = {{FjORD}: Fair and accurate federated learning under heterogeneous targets with ordered dropout},
+  author    = {Horv{\'a}th, Samuel and Laskaridis, Stefanos and Almeida, Mario and Leontiadis, Ilias and Venieris, Stylianos I. and Lane, Nicholas D.},
+  booktitle = {Advances in Neural Information Processing Systems (NeurIPS)},
+  year      = {2021}
+}
+
+@inproceedings{alam2022fedrolex,
+  title     = {{FedRolex}: Model-heterogeneous federated learning with rolling sub-model extraction},
+  author    = {Alam, Samiul and Liu, Luyang and Yan, Ming and Zhang, Mi},
+  booktitle = {Advances in Neural Information Processing Systems (NeurIPS)},
+  year      = {2022}
+}
+
+% ---------- Spiking federated learning ----------
+@article{venkatesha2021federated,
+  title   = {Federated learning with spiking neural networks},
+  author  = {Venkatesha, Yeshwanth and Kim, Youngeun and Tassiulas, Leandros and Panda, Priyadarshini},
+  journal = {IEEE Transactions on Signal Processing},
+  volume  = {69},
+  pages   = {6183--6194},
+  year    = {2021},
+  doi     = {10.1109/TSP.2021.3121632}
+}
+
+@inproceedings{skatchkovsky2020federated,
+  title     = {Federated neuromorphic learning of spiking neural networks for low-power edge intelligence},
+  author    = {Skatchkovsky, Nicolas and Jang, Hyeryung and Simeone, Osvaldo},
+  booktitle = {IEEE International Conference on Acoustics, Speech and Signal Processing (ICASSP)},
+  pages     = {8524--8528},
+  year      = {2020},
+  doi       = {10.1109/ICASSP40776.2020.9054074}
+}
+
+@inproceedings{nguyen2024flts,
+  title     = {{FLTS}: Federated learning for spiking neural networks via Top-$\kappa$ sparsification},
+  author    = {Nguyen, T. and others},
+  booktitle = {IEEE International Performance, Computing, and Communications Conference (IPCCC)},
+  year      = {2024},
+  note      = {CHECK-METADATA: confirm full author list and page numbers}
+}
+
+@inproceedings{chaki2023communication,
+  title     = {Communication trade-offs in federated learning of spiking neural networks},
+  author    = {Chaki, A. and others},
+  booktitle = {arXiv preprint arXiv:2303.00928},
+  year      = {2023},
+  note      = {CHECK-METADATA}
+}
+
+@inproceedings{zhan2024sfedca,
+  title     = {{SFedCA}: Credit assignment-based active client selection strategy for spiking federated learning},
+  author    = {Zhan, Qiugang and Liu, Guisong and Xie, Xiurui and Tang, Huajin},
+  booktitle = {arXiv preprint arXiv:2406.18897},
+  year      = {2024}
+}
+
+@inproceedings{yu2025fedlec,
+  title     = {{FedLEC}: Label-distribution-aware spiking federated learning with knowledge distillation},
+  author    = {Yu, Z. and others},
+  booktitle = {International Joint Conference on Artificial Intelligence (IJCAI)},
+  year      = {2025},
+  note      = {CHECK-METADATA}
+}
+
+@inproceedings{tao2026sfedhifi,
+  title     = {{SFedHIFI}: Heterogeneous information fusion for spiking federated learning},
+  author    = {Tao, Ran and Zhan, Qiugang and Yang, Shantian and Xie, Xiurui and Tian, Qi and Liu, Guisong},
+  booktitle = {AAAI Conference on Artificial Intelligence},
+  year      = {2026},
+  note      = {Our direct heterogeneous-capacity baseline; CHECK-METADATA on final page numbers}
+}
+
+@inproceedings{karilanova2026temporal,
+  title     = {Federated spiking learning under heterogeneous temporal resolutions},
+  author    = {Karilanova, S. and others},
+  booktitle = {arXiv preprint arXiv:2502.xxxx},
+  year      = {2026},
+  note      = {CHECK-METADATA: identify final venue}
+}
+
+% ---------- Privacy / safety for SNN-FL ----------
+@article{aksu2025snnprivacy,
+  title   = {On the natural privacy of spiking neural networks against gradient inversion attacks},
+  author  = {Aksu, A. and others},
+  journal = {arXiv preprint},
+  year    = {2025},
+  note    = {CHECK-METADATA}
+}
+
+@inproceedings{pereira2025dp,
+  title     = {Differentially private federated learning with spiking neural networks},
+  author    = {Pereira, J. and others},
+  booktitle = {IEEE International Conference on Acoustics, Speech and Signal Processing (ICASSP)},
+  year      = {2025},
+  note      = {CHECK-METADATA}
+}
+
+% ---------- SNN dynamic sparse training / pruning ----------
+@inproceedings{chen2021gradr,
+  title     = {Pruning of deep spiking neural networks through gradient rewiring},
+  author    = {Chen, Yanqi and Yu, Zhaofei and Fang, Wei and Huang, Tiejun and Tian, Yonghong},
+  booktitle = {International Joint Conference on Artificial Intelligence (IJCAI)},
+  year      = {2021},
+  pages     = {1713--1721}
+}
+
+@inproceedings{shen2023esl,
+  title     = {{ESL-SNN}: Sparse spiking neural network via reweighted lasso-regression and evolutionary structure learning},
+  author    = {Shen, Jiangrong and Xu, Qi and Liu, Jian K. and Wang, Yueming and Pan, Gang and Tang, Huajin},
+  booktitle = {AAAI Conference on Artificial Intelligence},
+  year      = {2023}
+}
+
+@article{su2024stds,
+  title   = {{STDS}: Spatio-temporal dynamic sparsity for spiking neural networks},
+  author  = {Su, Q. and others},
+  journal = {arXiv preprint},
+  year    = {2024},
+  note    = {CHECK-METADATA}
+}
+
+@inproceedings{yin2023mint,
+  title     = {{MINT}: Multiplier-less integer quantization and sparsity for spiking neural networks},
+  author    = {Yin, Ruokai and Kim, Youngeun and Wu, Di and Panda, Priyadarshini},
+  booktitle = {IEEE/ACM International Conference on Computer-Aided Design (ICCAD)},
+  year      = {2023}
+}
+
+@inproceedings{liu2021sparse,
+  title     = {Sparse spiking gradient descent},
+  author    = {Perez-Nieves, Nicolas and Goodman, Dan F. M.},
+  booktitle = {Advances in Neural Information Processing Systems (NeurIPS)},
+  year      = {2021}
+}
+
+@article{deng2021comprehensive,
+  title   = {Comprehensive {SNN} compression using {ADMM} optimization and activity regularization},
+  author  = {Deng, Lei and Wu, Yujie and Hu, Yifan and Liang, Ling and Li, Guoqi and Hu, Xing and Ding, Yufei and Li, Peng and Xie, Yuan},
+  journal = {IEEE Transactions on Neural Networks and Learning Systems},
+  year    = {2021},
+  doi     = {10.1109/TNNLS.2021.3131354}
+}
+
+@inproceedings{kim2022lottery,
+  title     = {Exploring lottery ticket hypothesis in spiking neural networks},
+  author    = {Kim, Youngeun and Li, Yuhang and Park, Hyoungseob and Venkatesha, Yeshwanth and Yin, Ruokai and Panda, Priyadarshini},
+  booktitle = {European Conference on Computer Vision (ECCV)},
+  year      = {2022}
+}
+
+@article{pan2023lottery,
+  title   = {Lottery ticket hypothesis for spiking neural networks},
+  author  = {Pan, Y. and others},
+  journal = {arXiv preprint},
+  year    = {2023},
+  note    = {CHECK-METADATA}
+}
+
+% ---------- Federated dynamic sparse training ----------
+@inproceedings{bibikar2022feddst,
+  title     = {Federated dynamic sparse training: Computing less, communicating less, yet learning better},
+  author    = {Bibikar, Sameer and Vikalo, Haris and Wang, Zhangyang and Chen, Xiaohan},
+  booktitle = {AAAI Conference on Artificial Intelligence},
+  year      = {2022},
+  pages     = {6080--6088}
+}
+
+@inproceedings{qiu2022zerofl,
+  title     = {{ZeroFL}: Efficient on-device training for federated learning with local sparsity},
+  author    = {Qiu, Xinchi and Fern{\'a}ndez-Marqu{\'e}s, Javier and Gusm{\~a}o, Pedro Porto Buarque and Gao, Yan and Parcollet, Titouan and Lane, Nicholas D.},
+  booktitle = {International Conference on Learning Representations (ICLR)},
+  year      = {2022}
+}
+
+@inproceedings{huang2023fedtiny,
+  title     = {{FedTiny}: Pruned federated learning towards specialized tiny models},
+  author    = {Huang, Hong and Zhang, Lan and Sun, Chaoyue and Fang, Ruogu and Yuan, Xiaoyong and Wu, Dapeng},
+  booktitle = {Proceedings of Machine Learning and Systems (MLSys)},
+  year      = {2023}
+}
+
+@inproceedings{dai2022dispfl,
+  title     = {{DisPFL}: Towards communication-efficient personalized federated learning via decentralized sparse training},
+  author    = {Dai, Rong and Shen, Li and He, Fengxiang and Tian, Xinmei and Tao, Dacheng},
+  booktitle = {International Conference on Machine Learning (ICML)},
+  year      = {2022}
+}
+
+% ---------- General DST baselines ----------
+@article{mocanu2018set,
+  title   = {Scalable training of artificial neural networks with adaptive sparse connectivity inspired by network science},
+  author  = {Mocanu, Decebal Constantin and Mocanu, Elena and Stone, Peter and Nguyen, Phuong H. and Gibescu, Madeleine and Liotta, Antonio},
+  journal = {Nature Communications},
+  volume  = {9},
+  number  = {1},
+  pages   = {2383},
+  year    = {2018},
+  doi     = {10.1038/s41467-018-04316-3}
+}
+
+@inproceedings{evci2020rigl,
+  title     = {Rigging the lottery: Making all tickets winners},
+  author    = {Evci, Utku and Gale, Trevor and Menick, Jacob and Castro, Pablo Samuel and Elsen, Erich},
+  booktitle = {International Conference on Machine Learning (ICML)},
+  pages     = {2943--2952},
+  year      = {2020}
+}
+
+@inproceedings{jayakumar2021topkast,
+  title     = {Top-{KAST}: Top-K always sparse training},
+  author    = {Jayakumar, Siddhant M. and Pascanu, Razvan and Rae, Jack W. and Osindero, Simon and Elsen, Erich},
+  booktitle = {Advances in Neural Information Processing Systems (NeurIPS)},
+  year      = {2020}
+}
+
+@article{zhu2017prune,
+  title   = {To prune, or not to prune: Exploring the efficacy of pruning for model compression},
+  author  = {Zhu, Michael and Gupta, Suyog},
+  journal = {arXiv preprint arXiv:1710.01878},
+  year    = {2017}
+}
+
+% ---------- Privacy / secure aggregation ----------
+@book{dwork2014dp,
+  title     = {The algorithmic foundations of differential privacy},
+  author    = {Dwork, Cynthia and Roth, Aaron},
+  publisher = {Foundations and Trends in Theoretical Computer Science},
+  volume    = {9},
+  number    = {3--4},
+  pages     = {211--407},
+  year      = {2014}
+}
+
+@inproceedings{bonawitz2017secagg,
+  title     = {Practical secure aggregation for privacy-preserving machine learning},
+  author    = {Bonawitz, Keith and Ivanov, Vladimir and Kreuter, Ben and Marcedone, Antonio and McMahan, H. Brendan and Patel, Sarvar and Ramage, Daniel and Segal, Aaron and Seth, Karn},
+  booktitle = {ACM Conference on Computer and Communications Security (CCS)},
+  pages     = {1175--1191},
+  year      = {2017},
+  doi       = {10.1145/3133956.3133982}
+}
