@@ -121,6 +121,24 @@ class BasicBlock(nn.Module):
         self.filter_bank_1.data = copy.deepcopy(X[:n_basis,:])
         self.filter_bank_2.data = copy.deepcopy(X[n_basis:,:])
 
+        # ----- SIFS hooks ------------------------------------------------
+        # mask buffers are *lazily* attached by sifs_utils.register_sifs_masks
+        # the first time main_FL.py instantiates the model; here we only
+        # ensure that if a buffer is present, it is multiplied into the
+        # gradient during backward so that pruned positions stay at zero.
+        for p_name in ('filter_bank_1', 'filter_bank_2'):
+            param = getattr(self, p_name)
+            buf_name = f'mask_{p_name}'
+
+            def _make_grad_hook(_p_name=p_name):
+                def _hook(grad):
+                    m = getattr(self, f'mask_{_p_name}', None)
+                    if m is None:
+                        return grad
+                    return grad * m.to(grad.dtype).to(grad.device)
+                return _hook
+            param.register_hook(_make_grad_hook())
+
         self.conv1 = DecomBlock(self.filter_bank_1, inplanes, planes, n_basis, basis_size, kernel_size=3, stride=stride, bias=False)
         self.bn1 = norm_layer(planes)
         self.sn1 = spiking_neuron(**deepcopy(kwargs))
